@@ -1,0 +1,20 @@
+---
+source: crates/biome_cli/tests/snap_test.rs
+assertion_line: 388
+expression: content
+---
+## `file.ts`
+
+```ts
+export default {
+  k: "v",
+}
+```
+
+# Emitted Messages
+
+```block
+Fixed 1 file(s) in <TIME>
+```
+
+

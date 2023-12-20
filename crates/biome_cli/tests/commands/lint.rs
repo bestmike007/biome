@@ -2607,3 +2607,61 @@ fn should_not_process_ignored_file_even_if_its_changed() {
         result,
     ));
 }
+
+#[test]
+fn long_running_apply_unsafe() {
+    let mut fs = MemoryFileSystem::default();
+    let mut console = BufferConsole::default();
+
+    let file_path = Path::new("file.ts");
+    let mut file_content = String::from("export default {\n");
+    for _ in 0..2000 {
+        file_content.push_str("  \"k\": \"v\",\n");
+    }
+    file_content.push_str("}");
+    fs.insert(file_path.into(), file_content.as_bytes());
+
+    let config_path = Path::new("biome.json");
+    fs.insert(
+        config_path.into(),
+        r#"{
+          "linter": {
+            "enabled": true,
+            "rules": {
+              "recommended": true
+            }
+          }
+        }"#
+        .as_bytes(),
+    );
+
+    let result = run_cli(
+        DynRef::Borrowed(&mut fs),
+        &mut console,
+        Args::from(
+            [
+                ("lint"),
+                ("--apply-unsafe"),
+                file_path.as_os_str().to_str().unwrap(),
+            ]
+            .as_slice(),
+        ),
+    );
+
+    assert!(result.is_ok(), "run_cli returned {result:?}: {console:?}");
+
+    let mut buffer = String::new();
+    fs.open(file_path)
+        .unwrap()
+        .read_to_string(&mut buffer)
+        .unwrap();
+    fs.remove(&config_path);
+
+    assert_cli_snapshot(SnapshotPayload::new(
+        module_path!(),
+        "long_running_apply_unsafe",
+        fs,
+        console,
+        result,
+    ));
+}
